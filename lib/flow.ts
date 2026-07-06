@@ -1,5 +1,8 @@
+export const GREETING =
+  "Welcome to GharJi 🏡\n\nYour real estate assistant. How can I help you today?";
+
 export const QUESTIONS = [
-  "Welcome to GharJi 🏡\n\nAre you the *Owner* or a *Broker*?",
+  "Great! Let's get your property listed.\n\nAre you the *Owner* or a *Broker*?",
   "Is this for *Rent* or *Sale*?",
   "What's the *property type*? (Apartment / House / Villa / Plot / Floor)",
   "Which *location*? (e.g. Sainik Farms, South Delhi)",
