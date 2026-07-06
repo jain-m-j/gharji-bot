@@ -10,7 +10,7 @@ const PHONE_ID = process.env.PHONE_NUMBER_ID!;
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN!;
 
 async function sendMessage(to: string, text: string) {
-  await fetch(`https://graph.facebook.com/v21.0/${PHONE_ID}/messages`, {
+  await fetch(`https://graph.facebook.com/v25.0/${PHONE_ID}/messages`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${TOKEN}`,
