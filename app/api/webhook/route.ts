@@ -142,8 +142,10 @@ export async function POST(req: NextRequest) {
           "No problem! Tell us briefly what you need, and our team will get back to you."
         );
       } else {
-        // Unrecognized text — treat it as a general inquiry rather than
-        // forcing the menu again
+        // Unrecognized text — slide into inquiry mode with this message
+        // as the first note, rather than forcing the menu again
+        session.stage = "inquiry";
+        session.step = 1;
         console.log("GENERAL INQUIRY:", {
           whatsapp: from,
           message: text,
@@ -151,25 +153,45 @@ export async function POST(req: NextRequest) {
         });
         await sendMessage(
           from,
-          "Thanks for reaching out! Our team will get back to you shortly.\n\nIf you'd like to *list a property*, just say *list*."
+          "Thanks for reaching out! Our team will get back to you shortly. Feel free to share more details here.\n\n(To list a property anytime, just say *list*.)"
         );
-        sessions.delete(from);
       }
       return NextResponse.json({ ok: true });
     }
 
-    // --- Inquiry stage: capture their message and close out ---
+    // --- Inquiry stage: open-ended conversation, no re-prompting ---
     if (session.stage === "inquiry") {
+      // Explicit one-word commands can still switch flows
+      const cmd = text.toLowerCase();
+      if (/^(list|sell)$/.test(cmd)) {
+        session.stage = "listing";
+        session.step = 0;
+        session.answers = {};
+        await sendMessage(from, QUESTIONS[0]);
+        return NextResponse.json({ ok: true });
+      }
+      if (/^menu$/.test(cmd)) {
+        session.stage = "menu";
+        await sendButtons(from, GREETING, MENU_BUTTONS);
+        return NextResponse.json({ ok: true });
+      }
+
       console.log("GENERAL INQUIRY:", {
         whatsapp: from,
         message: text,
         timestamp: new Date().toISOString(),
       });
-      await sendMessage(
-        from,
-        "✅ Got it — our team will get back to you shortly. Thank you!"
-      );
-      sessions.delete(from);
+      // Acknowledge the first message properly; stay unobtrusive after
+      // that so the person can keep typing without canned spam
+      if (session.step === 0) {
+        await sendMessage(
+          from,
+          "✅ Got it — our team will get back to you shortly. Feel free to add anything else here."
+        );
+      } else {
+        await sendMessage(from, "Noted 👍");
+      }
+      session.step += 1;
       return NextResponse.json({ ok: true });
     }
 
