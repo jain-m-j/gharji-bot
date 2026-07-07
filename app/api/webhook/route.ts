@@ -120,6 +120,20 @@ export async function POST(req: NextRequest) {
     const session = sessions.get(from);
 
     if (!session) {
+      // "Enquire" tap — log the lead, invite details, then leave the
+      // chat to humans
+      if (tappedButton === "enquire") {
+        console.log("ENQUIRY LEAD:", {
+          whatsapp: from,
+          timestamp: new Date().toISOString(),
+        });
+        await sendText(
+          from,
+          "🔍 Sure! Tell us what you're looking for — location, budget, type of property — and our team will get back to you with options."
+        );
+        return NextResponse.json({ ok: true });
+      }
+
       // "Talk to our team" tap — acknowledge once, then go silent
       if (tappedButton === "talk_team") {
         await sendText(
@@ -142,6 +156,10 @@ export async function POST(req: NextRequest) {
                 {
                   type: "reply",
                   reply: { id: "list_property", title: "List a property" },
+                },
+                {
+                  type: "reply",
+                  reply: { id: "enquire", title: "Enquire" },
                 },
                 {
                   type: "reply",
