@@ -7,7 +7,7 @@ export type Question = {
 };
 
 export const GREETING =
-  "Welcome to GharJi 🏡\n\nI'm the GharJi assistant. Want to list a property for rent or sale? Tap below — or if you need anything else, our team reads this chat and will reply personally.";
+  "Welcome to GharJi 🏡\n\nI'm the GharJi assistant. How can I help you today?";
 
 export const FLOW: Question[] = [
   {
