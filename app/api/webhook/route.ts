@@ -100,13 +100,19 @@ export async function POST(req: NextRequest) {
       message.text?.body?.trim() ??
       "";
 
-    let session = sessions.get(from);
-
-    // New / returning user starting fresh — welcome + first question
-    if (!session) {
-      session = { step: 0, answers: {} };
-      sessions.set(from, session);
+    // "list" (typed, exact) activates the bot — always starts a fresh
+    // flow, even if one was mid-way
+    if ((message.text?.body?.trim().toLowerCase() ?? "") === "list") {
+      sessions.set(from, { step: 0, answers: {} });
       await sendQuestion(from, 0);
+      return NextResponse.json({ ok: true });
+    }
+
+    const session = sessions.get(from);
+
+    // No active flow and not the trigger word — stay silent so normal
+    // human conversation on this number is untouched
+    if (!session) {
       return NextResponse.json({ ok: true });
     }
 
