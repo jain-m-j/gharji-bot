@@ -6,10 +6,13 @@ export type Question = {
   options?: string[];
 };
 
+export const GREETING =
+  "Welcome to GharJi 🏡\n\nI'm the GharJi assistant. Want to list a property for rent or sale? Tap below — or if you need anything else, our team reads this chat and will reply personally.";
+
 export const FLOW: Question[] = [
   {
     field: "role",
-    text: "Welcome to GharJi 🏡\n\nAre you the *Owner* or a *Broker*?",
+    text: "Great! Let's get your property listed.\n\nAre you the *Owner* or a *Broker*?",
     options: ["Owner", "Broker"],
   },
   {

@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { FLOW } from "@/lib/flow";
+import { FLOW, GREETING } from "@/lib/flow";
 
-// In-memory state. NOTE: resets on cold start / redeploy. POC only.
+// In-memory state. NOTE: resets on cold start / redeploy. POC only —
+// the Supabase migration replaces both of these with table reads/writes.
 type Session = { step: number; answers: Record<string, string> };
 const sessions = new Map<string, Session>();
+// Numbers that have already seen the one-time greeting ("human mode":
+// the bot stays silent for them unless summoned)
+const greeted = new Set<string>();
 
 const TOKEN = process.env.WHATSAPP_TOKEN!;
 const PHONE_ID = process.env.PHONE_NUMBER_ID!;
@@ -100,9 +104,14 @@ export async function POST(req: NextRequest) {
       message.text?.body?.trim() ??
       "";
 
-    // "list" (typed, exact) activates the bot — always starts a fresh
-    // flow, even if one was mid-way
-    if ((message.text?.body?.trim().toLowerCase() ?? "") === "list") {
+    const typed = message.text?.body?.trim().toLowerCase() ?? "";
+    const tappedButton = message.interactive?.button_reply?.id ?? null;
+
+    // Bot summons: typing "list" or tapping the greeting's "List a
+    // property" button — always starts a fresh flow, even if one was
+    // mid-way (doubles as a restart escape hatch)
+    if (typed === "list" || tappedButton === "list_property") {
+      greeted.add(from);
       sessions.set(from, { step: 0, answers: {} });
       await sendQuestion(from, 0);
       return NextResponse.json({ ok: true });
@@ -110,9 +119,42 @@ export async function POST(req: NextRequest) {
 
     const session = sessions.get(from);
 
-    // No active flow and not the trigger word — stay silent so normal
-    // human conversation on this number is untouched
     if (!session) {
+      // "Talk to our team" tap — acknowledge once, then go silent
+      if (tappedButton === "talk_team") {
+        await sendText(
+          from,
+          "👍 Sure — our team will reply here personally. (You can type *list* anytime to list a property.)"
+        );
+        return NextResponse.json({ ok: true });
+      }
+
+      // First message ever from this number → one-time greeting
+      if (!greeted.has(from)) {
+        greeted.add(from);
+        await sendPayload(from, {
+          type: "interactive",
+          interactive: {
+            type: "button",
+            body: { text: GREETING },
+            action: {
+              buttons: [
+                {
+                  type: "reply",
+                  reply: { id: "list_property", title: "List a property" },
+                },
+                {
+                  type: "reply",
+                  reply: { id: "talk_team", title: "Talk to our team" },
+                },
+              ],
+            },
+          },
+        });
+        return NextResponse.json({ ok: true });
+      }
+
+      // Already greeted, no active flow — human mode, stay silent
       return NextResponse.json({ ok: true });
     }
 
